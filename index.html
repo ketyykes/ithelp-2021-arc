@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const width = 800;
+      const height = 800;
+      const svg = d3
+        .select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+      const g = svg.append("g");
+      const arc = d3.arc().innerRadius(50).outerRadius(100).cornerRadius(2);
+
+
+      function Percentage(num, total) {
+        if (num == 0 || total == 0) {
+          return 0;
+        }
+        return Math.round((num / total) * 10000) / 100.0;
+      }
+      d3.json("populationDensity.json")
+        .then(function (data) {
+          console.log(data);
+          let districtData = d3.group(data.result.records,d=>{
+            return d.site_id.slice(0, 3);
+          })
+          const districtAry = Array.from(districtData);
+          // console.log(districtAry);
+          districtAry.splice(-6);
+          districtAry.shift();
+         
+          districtAry.forEach(function (el) {
+            el.push(d3.sum(el[1], (d) => Number(d.people_total)));
+          });
+
+          // console.log(districtAry);
+          let municipality = ["臺北市","新北市","臺南市","高雄市","桃園市","臺中市"];
+          districtAry.forEach((districtAryEl) => {
+              for (let i = 0; i < municipality.length; i++) {
+                if (districtAryEl[0] == municipality[i]) {
+                  districtAryEl[3] = "直轄市";
+                  return;
+                } else {
+                  districtAryEl[3] = "非直轄市";
+                }
+              }
+            });
+            console.log(districtAry);
+            const municipalitySumFun = (municipalityStr) =>
+              d3.sum(districtAry, (d) => {
+                if (d[3] === municipalityStr) return d[2];
+                if (municipalityStr==undefined) return d[2];
+              });
+            let districtArySum = municipalitySumFun();
+            let municipalitySum = municipalitySumFun("直轄市");
+            let NotMunicipalitySum = municipalitySumFun("非直轄市");
+            console.log(districtArySum);
+            console.log(municipalitySum);
+            console.log(NotMunicipalitySum);
+
+            
+            let pie = d3.pie().value(function (d) {
+              return d[2];
+            });
+            console.log(pie(districtAry));
+            let color = d3.scaleOrdinal(d3.schemeTableau10);
+            g.attr(
+              "transform",
+              `translate(${width / 2}, ${height / 2}) scale(2.5)`
+            )
+            g.selectAll("g")
+              .data(d3.sort(pie(districtAry), (d) => d.index))
+              .join("g")
+              .append("path")
+              .attr("stroke", "white")
+              .attr("stroke-width", ".25")
+              .attr("fill", (d, i) => color(d.data[3]))
+                            //如果只有下面這樣的話是設置每個扇形的動畫
+              .transition()
+              .ease(d3.easeLinear)
+              .duration(500)
+              .delay(function (d, i) {
+                return i*500;
+              })
+              .attrTween("d", function (d) {  //也就是設置每一個d的補間動畫
+                let i = d3.interpolate(d.startAngle, d.endAngle);
+                return function (t) {
+                
+                  d.endAngle = i(t);
+                  return arc(d);
+                };
+              });
+              
+            g.selectAll("g")
+              .on("mouseenter", function (e) {
+                let appendText = d3
+                  .select(this)
+                  .append("text")
+                  .style("font-size", "10px")
+                  .style("text-anchor", "middle")
+                  .html(d=>{
+                    return `<tspan x="0" y="-.5em">${d.data[0]}</tspan>
+                          <tspan x="0" y=".5em">${d.data[2]}人</tspan>
+                          <tspan x="0" y="1.5em">${Percentage(d.data[2],districtArySum)}%</tspan>`
+                  })
+              })
+              .on("mouseleave", function (e) {
+                d3.select(this).select("text").remove();
+              });
+            svg.append("g").html(`
+            <text  y="${height-100}" style="font-size:50; transform:translate(-20%,0)">
+                <tspan x="${width/2}">直轄市${Percentage(municipalitySum,districtArySum)}%</tspan>
+                <tspan x="${width/2}"  dx="-0.5em"dy="1em">非直轄市${Percentage(NotMunicipalitySum,districtArySum)}%</tspan>
+            </text>
+            `)
+    });
+    </script>
+  </body>
+</html>

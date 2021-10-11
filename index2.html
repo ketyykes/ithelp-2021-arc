@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+
+  <body>
+    <!-- <svg width="400" height="400">
+      <path transform="translate(200,200)" d="M6.123233995736766e-15,-100A100,100,0,1,1,-6.123233995736766e-15,100A100,100,0,1,1,6.123233995736766e-15,-100Z"></path>
+    </svg> -->
+    <script>
+      const width = 400;
+      const height = 400;
+      d3.select("body").append("svg").attr("width", width);
+      const svg = d3.select("svg").attr("width", width).attr("height", height);
+      const arc = d3.arc().innerRadius(50).outerRadius(100).cornerRadius(5)	;
+      const data = [1, 1, 2, 3, 5, 8, 13, 21];
+      const pie = d3.pie();
+      svg.append("g")
+        .attr("transform", `translate(${width / 2}, ${height / 2})`)
+        .selectAll("path")
+        .data(pie(data))
+        .join("path")
+        .attr("d", (data) => arc(data))
+        .attr("stroke", "white")
+        .attr("stroke-width", "1");
+    </script>
+  </body>
+</html>
